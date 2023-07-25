@@ -7,6 +7,7 @@ use App\Mail\EmailVerification;
 use App\Model\BusinessSetting;
 use App\Model\EmailVerifications;
 use App\Models\User;
+use App\Models\userfields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -60,6 +61,8 @@ class VendorAuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+
+
         $token = $Vandor->createToken('VandorAuth')->accessToken;
 
         return response()->json(['token' => $token, 'status' => true, 'VandorData'=>$Vandor], 200);
@@ -72,75 +75,12 @@ class VendorAuthController extends Controller
     }
 
 
-    public function register(Request $request)
-    { 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'email' => 'required|unique:users',
-            'phonenumber' => 'required|unique:users',
-            'business_name' => 'required',
-            'home_phone' => 'required',
-            'business_phone' => 'required',
-            'fax' => 'required',
-            'country' => 'required',
-            'state' => 'required',
-            'city' => 'required',
-            'address' => 'required',
-            'website' => 'required',
-            'cnic_front' => 'required|mimes:png,jpg',
-            'cnic_back' => 'required|mimes:png,jpg|',
-            'password' => 'required|min:6',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => false,'errors' => error_processor($validator)], 403);
-        }
-
-        $cnic_front = null;
-        $cnic_back = null;
-        if(!empty($request->cnic_front))
-        {
-            $cnic_front = Cmf::sendimagetodirectory($request->cnic_front);
-        }
-        if(!empty($request->cnic_back))
-        {
-            $cnic_back = Cmf::sendimagetodirectory($request->cnic_back);
-        }
-
-        // dd($request->all());
-        // die('here');
-        $Vandor = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phonenumber' => $request->phonenumber,
-            'business_name' => $request->business_name,
-            'home_phone' => $request->home_phone,
-            'business_phone' => $request->business_phone,
-            'fax' => $request->fax,
-            'country' => $request->country,
-            'state' => $request->state,
-            'city' => $request->city,
-            'address' => $request->address,
-            'website' => $request->website,
-            'cnic_back' => $cnic_back,
-            'cnic_front' => $cnic_front,
-            'active' => 1,
-            'role_id' => 1,
-            'is_admin' =>0,
-            'user_type' =>'vendor',
-            'password' => bcrypt($request->password)
-        ]);
-
-        $token = $Vandor->createToken('VandorAuth')->accessToken;
-
-        return response()->json(['token' => $token, 'status' => true, 'VandorData'=>$Vandor], 200);
-    }
-
+    
 
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'username' => 'required',
+            'email' => 'required',
             'password' => 'required|min:6'
         ]);
 
@@ -149,14 +89,13 @@ class VendorAuthController extends Controller
         }
 
         $data = [
-            'email' => $request->username,
+            'email' => $request->email,
             'password' => $request->password
         ];
 
         if (auth()->attempt($data)) {
-
-            $token = Auth::user()->createToken('name'); 
-
+                       
+              $token = Auth::user()->createToken('name');
             return response()->json(['token' => $token,'status' => true,'UserData'=>auth()->user()], 200);
         } else {
             $errors = [];
@@ -403,6 +342,16 @@ class VendorAuthController extends Controller
     }
 
     
-
+    public function generate_username($string_name, $rand_no = 200){
+        $username_parts = array_filter(explode(" ", strtolower($string_name))); //explode and lowercase name
+        $username_parts = array_slice($username_parts, 0, 2); //return only first two arry part
+    
+        $part1 = (!empty($username_parts[0]))?substr($username_parts[0], 0,8):""; //cut first name to 8 letters
+        $part2 = (!empty($username_parts[1]))?substr($username_parts[1], 0,5):""; //cut second name to 5 letters
+        $part3 = ($rand_no)?rand(0, $rand_no):"";
+        
+        $username = $part1. str_shuffle($part2). $part3; //str_shuffle to randomly shuffle all characters 
+        return $username;
+    }
     
 }

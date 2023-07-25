@@ -148,12 +148,20 @@
                             @if($r->type == 'select')
                             <div style="margin-bottom: 15px;"  class="col-md-6">
                                 <div class="form-group">
+                                    @php
+                                     $data = DB::table('signupfieldschilds')->where('signup_parent' , $r->id)->get();
+                                     $userfields = DB::table('userfields')->where('user_id',Auth::id())->get();
+                                    @endphp
+                                                                           
+                                    
                                     <label>{{ $r->name }}</label>
                                     <select name="{{ $r->id }}" @if($r->isrequired == 'yes') required @endif style="height:62px;background-color: #242424;" class="form-control">
-                                        @foreach(DB::table('signupfieldschilds')->where('signup_parent' , $r->id)->get() as $c)
+                                        @foreach($data as $c)
+                                        
                                         <option
-                                            @if(DB::table('userfields')->where('signup_parent' , $r->id)->where('user_id' , $user_id)->get()->first()->value == $c->name) selected @endif
+                                        @foreach($userfields as $f) @if($c->name == $f->value) selected @endif @endforeach
                                          value="{{ $c->name }}">{{ $c->name }}</option>
+                                         
                                         @endforeach
                                     </select>
                                 </div>

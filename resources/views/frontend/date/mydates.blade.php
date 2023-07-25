@@ -17,12 +17,12 @@
         <div class="media">
             <div class="item-img">
                 <a href="javascript:void(0)">
-                    <img src="{{ asset('public/images') }}/{{ DB::table('places')->where('id' , $r->place_id)->get()->first()->image }}" alt="post">
+                    <img src="{{ asset('public/images') }}/{{ DB::table('places')->where('countries' , $r->place_id)->get()->first()->image }}" alt="post">
                 </a>
             </div>
             <div class="media-body">
                 <div class="post-date">{{ Cmf::date_format($r->created_at) }}</div>
-                <h4 class="item-title"><a style="color: #ef8089;" href="{{ url('profile') }}/{{ DB::table('users')->where('id' , $r->send_id)->get()->first()->username }}">{{ DB::table('users')->where('id' , $r->send_id)->get()->first()->name }}</a> Sent you Invitation for Join in {{ DB::table('places')->where('id' , $r->place_id)->get()->first()->name }}</h4>
+                <h4 class="item-title"><a style="color: #ef8089;" href="{{ url('profile') }}/{{ DB::table('users')->where('id' , $r->send_id)->get()->first()->username }}">{{ DB::table('users')->where('id' , $r->send_id)->get()->first()->name }}</a> Sent you Invitation for Join in {{ DB::table('places')->where('countries' , $r->place_id)->get()->first()->name }}</h4>
             </div>
             <div class="media-body text-right">
                 <a href="{{ url('profile/acceptplaceinvitation') }}/{{ $r->id }}" class="btn btn-primary">Complete</a>

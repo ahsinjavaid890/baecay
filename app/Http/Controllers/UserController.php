@@ -124,12 +124,10 @@ class UserController extends Controller
             "selectedplaces.created_at",
             "places.name",
             "places.image",
-            "places.id as place_id",                 
-                        )
+            "places.id as place_id")
             ->leftJoin('places', 'selectedplaces.places', '=', 'places.id')
             ->where('selectedplaces.user_id' , Auth::user()->id)
             ->get();
-            // print_r($placesselected);exit;
         return view('frontend.user.userprofile')->with(array('data'=>$data,'placesselected'=>$placesselected));
     }
     public function userprofile($id)
@@ -141,8 +139,7 @@ class UserController extends Controller
             "selectedplaces.places",
             "selectedplaces.created_at",
             "places.name",
-            "places.image",                 
-                        )
+            "places.image")
             ->leftJoin('places', 'selectedplaces.places', '=', 'places.id')
             ->where('selectedplaces.user_id' , $data->id)
             ->get();
@@ -162,8 +159,7 @@ class UserController extends Controller
             "selectedplaces.places",
             "selectedplaces.created_at",
             "places.name",
-            "places.image",                 
-                        )
+            "places.image")
             ->leftJoin('places', 'selectedplaces.places', '=', 'places.id')
             ->where('selectedplaces.user_id' , $data->id)
             ->get();

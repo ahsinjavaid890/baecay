@@ -98,7 +98,6 @@
                                             <label>{{ $r->name }}</label>
                                             <select name="{{ $r->id }}" @if($r->isrequired == 'yes') required @endif style="height:62px;background-color: #242424;" class="form-control">
                                                 <option value="">Choose option</option>
-
                                                 @foreach(DB::table('signupfieldschilds')->where('signup_parent' , $r->id)->get() as $c)
                                                 <option
 
@@ -145,7 +144,7 @@
                                 <div class="form-group">
                                     <label>{{ $r->name }}</label>
                                     <div class="row">
-                                        @foreach(DB::table('signupfieldschilds')->where('signup_parent' , $r->id)->get() as $c)
+                                        @foreach(DB::table('signupfieldschilds')->where('signup_parent',$r->id)->get() as $c)
                                         <div style="display: flex;" class="col-md-6">
                                             <input value="{{ $c->name }}" id="checkbox{{ $c->id }}" type="checkbox" name="{{ $r->id }}">
                                             <label for="checkbox{{ $c->id }}" style="padding-left: 10px;margin-top: 17px;"> {{ $c->name }} </label>

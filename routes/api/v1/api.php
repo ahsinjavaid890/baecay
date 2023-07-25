@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ApiController;
+
 
 Route::group(['namespace' => 'Api\V1'], function () {
 
@@ -15,6 +17,7 @@ Route::group(['namespace' => 'Api\V1'], function () {
         Route::post('login', 'VendorAuthController@login');
         Route::get('google', 'VendorAuthController@redirectToGoogle');
         Route::get('googlecallback', 'VendorAuthController@handleGoogleCallback');
+
 
         Route::middleware(['auth:api'])->get('/logout', function (Request $request) {
             $request->user()->token()->revoke();
@@ -198,3 +201,49 @@ Route::group(['namespace' => 'Api\V1'], function () {
 
     }); 
 });
+
+    Route::post('register', [ApiController::class,'register']);
+    Route::get('signupfield', [ApiController::class, 'signupfields']);
+    Route::post('signupfieldschild', [ApiController::class, 'signupfieldschilds']);
+
+    Route::post('changepassword', [ApiController::class,'apiChangePassword'])->middleware('auth:api');
+    Route::get('profile', [ApiController::class,'apiUserProfile'])->middleware('auth:api');
+    Route::post('profile_update',[ApiController::class,'ProfileUpdate'])->middleware('auth:api');
+    Route::post('profile_image_update',[ApiController::class,'apiUpdateProfileImage'])->middleware('auth:api');
+
+    Route::get('allcountries', [ApiController::class, 'getcountries']);
+    Route::post('allplaces', [ApiController::class, 'getplaces']);
+    Route::post('placedetails', [ApiController::class, 'placedetails']);
+    
+    Route::post('saveplaces', [ApiController::class,'apisaveplaces'])->middleware('auth:api');
+    Route::get('getsaveplaces', [ApiController::class,'apiloveplaces'])->middleware('auth:api');
+    Route::get('findpeople', [ApiController::class,'apifindpeople'])->middleware('auth:api');
+    Route::post('peopleprofile', [ApiController::class,'apipeopleprofile'])->middleware('auth:api');
+    Route::post('sendfriendrequest', [ApiController::class,'apisendlove'])->middleware('auth:api');
+    Route::get('cancelrequest/{id}', [ApiController::class,'apicancellove'])->middleware('auth:api');
+    Route::get('friendrequests', [ApiController::class,'apifriendrequests'])->middleware('auth:api');
+    Route::get('acceptreuqqest/{id}', [ApiController::class,'apiacceptreuqqest'])->middleware('auth:api');
+    Route::get('unfriend/{id}', [ApiController::class,'apiunfriend'])->middleware('auth:api');
+
+
+    Route::get('apigoondate', [ApiController::class,'apigoondate'])->middleware('auth:api');
+
+    Route::get('apisearchcountry/{id}', [ApiController::class,'apisearchcountry'])->middleware('auth:api');
+    Route::get('apiplacedetails/{id}', [ApiController::class,'apiplacedetails'])->middleware('auth:api');
+    Route::get('apiinvitations', [ApiController::class,'apiinvitations'])->middleware('auth:api');
+    Route::get('apisendinvitations', [ApiController::class,'apisendinvitations'])->middleware('auth:api');
+    Route::get('apiacceptplaceinvitation/{id}', [ApiController::class,'apiacceptplaceinvitation'])->middleware('auth:api');
+    Route::get('apirejectplaceinvitation/{id}', [ApiController::class,'apirejectplaceinvitation'])->middleware('auth:api');
+    Route::get('apiuserdates', [ApiController::class,'apiuserdates'])->middleware('auth:api');
+    Route::get('apichatroom', [ApiController::class,'apichatroom'])->middleware('auth:api');
+
+    Route::post('apisentplaceinvite', [ApiController::class,'apisentplaceinvite'])->middleware('auth:api');
+    Route::get('apiremoveplace/{id}', [ApiController::class,'apiremoveplace'])->middleware('auth:api');
+    Route::get('apinotifications', [ApiController::class,'apinotifications'])->middleware('auth:api');
+    Route::get('apigetcompletenotifications', [ApiController::class,'apigetcompletenotifications'])->middleware('auth:api');
+
+    Route::post('forgotpassword', [ApiController::class,'apiForgotPassword']);
+
+
+
+
