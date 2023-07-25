@@ -2,9 +2,26 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\Api\V1\AuthController;
+
+Route::group(['namespace' => 'api\v1'], function () {
+
+    // *************************************
+    //           Authentication Apis
+    // *************************************
+
+    Route::post('login', [AuthController::class, 'login']);
+    Route::get('signupfield', [AuthController::class, 'signupfield']);
+    Route::post('signupfieldschild', [AuthController::class, 'signupfieldschilds']);
+    Route::post('changepassword', [AuthController::class, 'signupfieldschilds']);
 
 
-Route::group(['namespace' => 'Api\V1'], function () {
+    // *************************************
+    //           Site Settings
+    // *************************************
+
+    Route::get('sitesettings', 'ConfigController@configuration');
+
 
     Route::get('getcountries', 'ConfigController@getcountries');
     Route::get('getstates/{id}', 'ConfigController@getstates');
@@ -203,8 +220,7 @@ Route::group(['namespace' => 'Api\V1'], function () {
 });
 
     Route::post('register', [ApiController::class,'register']);
-    Route::get('signupfield', [ApiController::class, 'signupfields']);
-    Route::post('signupfieldschild', [ApiController::class, 'signupfieldschilds']);
+    
 
     Route::post('changepassword', [ApiController::class,'apiChangePassword'])->middleware('auth:api');
     Route::get('profile', [ApiController::class,'apiUserProfile'])->middleware('auth:api');
