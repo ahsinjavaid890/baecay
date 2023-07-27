@@ -7,6 +7,7 @@ use Auth;
 use App\Models\User;
 use App\Models\userplaces;
 use App\Models\userfields;
+use App\Models\mediaimages;
 use Illuminate\Support\Str;
 use App\Helpers\Cmf;
 use DB; 
@@ -39,7 +40,202 @@ use Illuminate\Support\Facades\Redirect;
 
 class ApiController extends Controller
 {
-    
+    public function peopleprofile(Request $request)
+    {
+        $data = user::where('username' ,$request->username)->first();
+        $fields = DB::table('signupfields')->where('published_status','published')->where('delete_Status','active')->orderby('order' , 'asc')->get();
+        $temp = array();
+        foreach($fields as $r)
+        {
+            $Userfields =  DB::Table('userfields')->where('signup_parent',$r->id)->where('user_id',$data->id)->get();
+            foreach($Userfields as $f)
+            {
+               $temp['id'] = $data->id;
+               $temp['name'] = $data->name;
+               $temp['username'] = $data->username;
+               $temp['Joined'] = Cmf::date_format($data->created_at);
+               $temp['E-mail'] = $data->email;
+               $temp['Phone'] = $data->phonenumber;
+               $temp['Height'] = $data->height;
+               $temp['Age'] = $data->age;
+               $temp[$r->name] = $f->value;
+            }
+        }
+        return response(['success' => true , 'data' => $temp]);
+    }
+    public function searchmemberwithname(Request $request)
+    {
+        $user = User::where('id',$request->user_id)->first();
+        $data = user::where('user_type' , 'customer')->where('name','like', '%' .$request->search. '%' )->whereNotIn('id',[$user->id])->where('active' , 1)->where('is_admin' , 0)->get();
+        return response(['success' => true, 'data' => $data]);
+    }
+    public function getallmembers(Request $request)
+    {
+        $user = User::where('id',$request->user_id)->first();
+        $data = user::where('user_type' , 'customer')->whereNotIn('id',[$user->id])->where('active' , 1)->where('is_admin' , 0)->get();
+        return response(['success' => true, 'data' => $data]);
+    }
+    public function removeplace(Request $request)
+    {
+        selectedplaces::where('id' , $request->id)->delete();
+        return response()->json(['status' => true, 'data'=>'Place Deleted Successfully']);
+
+    }
+    public function addnewplace(Request $request)
+    {
+        $user = User::where('id',$request->user_id)->first();
+        if($request->selectedplaces)
+        {
+            foreach ($request->selectedplaces as $r) {
+                $place = new selectedplaces();
+                $place->user_id = $user->id;
+                $place->places = $r;
+                $place->save();
+            }
+        }
+        return response()->json(['status' => true, 'data'=>'Place Added']);
+    }
+    public function getsaveplaces(Request $request)
+    {
+        $user = User::where('id',$request->user_id)->first();
+        $placesselected = selectedplaces::select(
+            "selectedplaces.id",
+            "selectedplaces.user_id",
+            "selectedplaces.places",
+            "selectedplaces.created_at",
+            "places.name",
+            "places.image")
+            ->leftJoin('places', 'selectedplaces.places', '=', 'places.id')
+            ->where('selectedplaces.user_id' , $user->id)
+            ->get();
+        return response(['success' => true, 'data' => $placesselected]);
+    }
+    public function photos(Request $request)
+    {
+        $images = mediaimages::select("mediaimages.images")->where('user_id' , $request->user_id)->get();
+        return response(['success' => true , 'data' => $images]);
+    }
+    public function profilecoverimageupdate(Request $request)
+    {
+        $vendor = User::where('id',$request->user_id)->first();
+        if (isset($request['coverimage']))
+        {
+            $image['coverimage'] = Cmf::sendimagetodirectory($request->coverimage);
+        }
+        $vendor->update($image);
+        return response(['success' => true , 'data' => 'Cover Image Updated successfully..']);
+    }
+    public function profileimageupdate(Request $request)
+    {
+        $vendor = User::where('id',$request->user_id)->first();
+        if (isset($request['profileimage']))
+        {
+            $image['profileimage'] = Cmf::sendimagetodirectory($request->profileimage);
+        }
+        $vendor->update($image);
+        return response(['success' => true , 'data' => 'Profile Image Updated successfully..']);
+    }
+    public function ProfileUpdate(Request $request)
+    { 
+        $vendor = User::where('id',$request->user_id)->first();
+        $validator = Validator::make($request->all(), [
+            'name' => 'required',
+            'phonenumber' => 'required',
+            'age' => 'required',
+            'height' => 'required',
+            'address' => 'required',
+            'gender' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['status' => false,'errors' => error_processor($validator)], 403);
+        }
+        $vendor['name'] = $request->name;
+        $vendor['phonenumber'] = $request->phonenumber;
+        $vendor['age'] = $request->age;
+        $vendor['gender'] = $request->gender;
+        $vendor['height'] = $request->height;
+        $vendor['username'] = $this->generate_username($request->name);
+        $vendor['about'] = $request->about;
+        $vendor['address'] = $request->address;
+        $vendor->save();
+        // foreach($request->education as $key){
+        //     $signupfieldschilds = DB::table('signupfieldschilds')->where('id',$key)->first();
+        //      DB::table('userfields')->where('user_id',auth()->user()->id)->update(['signup_parent' => $signupfieldschilds->signup_parent,'value' => $signupfieldschilds->name,]);
+        // }
+        return response()->json(['status' => true, 'data'=>'profile Updated']);
+    }
+    public function changepassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'bail|required|min:6',
+            'password' => 'bail|required|min:6',
+            'password_confirmation' => 'bail|required|min:6',
+        ]);
+        $data = $request->all();
+        $id = User::where('id',$request->user_id)->first();
+
+        if(Hash::check($data['old_password'], $id->password) == true)
+        {
+            if($data['password'] == $data['password_confirmation'])
+            {
+                $id->password = Hash::make($data['password']);
+                $id->save();
+                return response(['success' => true , 'data' => 'Password Update Successfully...!!']);
+            }
+            else
+            {
+                return response(['success' => false , 'data' => 'password and confirm password does not match']);
+            }
+        }
+        else
+        {
+            return response(['success' => false , 'data' => 'Old password does not match.']);
+        }
+    }
+    public function timeline(Request $request)
+    {
+        $vendor = User::where('id',$request->user_id)->first();
+        $fields = DB::table('signupfields')->where('published_status' , 'published')->where('delete_Status','active')->orderby('order' , 'asc')->get();
+        $temp = array();
+        foreach($fields as $r)
+        {
+            $Userfields =  DB::Table('userfields')->where('signup_parent',$r->id)->where('user_id',$request->user_id)->get();
+            foreach($Userfields as $f)
+            {
+               $temp['name'] = $vendor->name;
+               $temp['Joined'] = Cmf::date_format($vendor->created_at);
+               $temp['E-mail'] = $vendor->email;
+               $temp['Phone'] = $vendor->phonenumber;
+               $temp['Height'] = $vendor->height;
+               $temp['Age'] = $vendor->age;
+               $temp[$r->name] = $f->value;
+
+            }
+        }
+        return response(['success' => true , 'data' => $temp]);
+    }
+    public function about(Request $request)
+    {
+        $vendor = User::where('id',$request->user_id)->first();
+        $fields = DB::table('signupfields')->where('published_status' , 'published')->where('delete_Status','active')->orderby('order' , 'asc')->get();
+        $temp = array();
+        foreach($fields as $r)
+        {
+            $Userfields =  DB::Table('userfields')->where('signup_parent',$r->id)->where('user_id',$request->user_id)->get();
+            foreach($Userfields as $f)
+            {
+               $temp['name'] = $vendor->name;
+               $temp['Joined'] = Cmf::date_format($vendor->created_at);
+               $temp['E-mail'] = $vendor->email;
+               $temp['Phone'] = $vendor->phonenumber;
+               $temp['Height'] = $vendor->height;
+               $temp['Age'] = $vendor->age;
+               $temp[$r->name] = $f->value;
+
+            }
+        }
+        return response(['success' => true , 'data' => $temp]);
+    }
     public function register(Request $request)
     { 
 
@@ -229,130 +425,15 @@ class ApiController extends Controller
         return $username;
     }
     
-        public function apiUserProfile()
-    {
-        $vendor = User::where('id',auth()->user()->id)->first();
-        $fields = DB::table('signupfields')->where('published_status' , 'published')->where('delete_Status','active')->orderby('order' , 'asc')->get();
-        $temp = array();
-        foreach($fields as $r)
-        {
-       $Userfields =  DB::Table('userfields')->where('signup_parent',$r->id)->where('user_id',auth()->user()->id)->get();
-          
-          foreach($Userfields as $f)
-        {
-           $temp['name'] = $vendor->name;
-           $temp['Joined'] = Cmf::date_format($vendor->created_at);
-           $temp['E-mail'] = $vendor->email;
-           $temp['Phone'] = $vendor->phonenumber;
-           $temp['Height'] = $vendor->height;
-           $temp['Age'] = $vendor->age;
-           $temp[$r->name] = $f->value;
-
-        }
-        }
-       
-        return response(['success' => true , 'data' => $temp]);
-    }
+    
 
     
-        public function apiChangePassword(Request $request)
-    {
-        $request->validate([
-            'old_password' => 'bail|required|min:6',
-            'password' => 'bail|required|min:6',
-            'password_confirmation' => 'bail|required|min:6',
-        ]);
-        $data = $request->all();
-        $id = auth()->user();
-
-        if(Hash::check($data['old_password'], $id->password) == true)
-        {
-            if($data['password'] == $data['password_confirmation'])
-            {
-                $id->password = Hash::make($data['password']);
-                $id->save();
-                return response(['success' => true , 'data' => 'Password Update Successfully...!!']);
-            }
-            else
-            {
-                return response(['success' => false , 'data' => 'password and confirm password does not match']);
-            }
-        }
-        else
-        {
-            return response(['success' => false , 'data' => 'Old password does not match.']);
-        }
-    }
-
-
-     public function ProfileUpdate(Request $request)
-    { 
-
-        $vendor = User::where('id',auth()->user()->id)->first();
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'phonenumber' => 'required',
-            'age' => 'required',
-            'height' => 'required',
-            'gender' => 'required',
-            'education' => 'required',
-
-    ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => false,'errors' => error_processor($validator)], 403);
-        }
-        
-        
-
-            $vendor['name'] = $request->name;
-            $vendor['phonenumber'] = $request->phonenumber;
-            $vendor['age'] = $request->age;
-            $vendor['gender'] = $request->gender;
-            $vendor['height'] = $request->height;
-            $vendor['username'] = $this->generate_username($request->name);
-            $vendor['about'] = $request->about;
-            $vendor->save();
-
-
-
-                foreach($request->education as $key){
-                    $signupfieldschilds = DB::table('signupfieldschilds')->where('id',$key)->first();
-                     DB::table('userfields')
-                    ->where('user_id',auth()->user()->id)
-                    ->update([
-                    'signup_parent' => $signupfieldschilds->signup_parent,
-                     'value' => $signupfieldschilds->name,
-                        ]);
-
-                       }
-               
-        
-
-        return response()->json(['status' => true, 'data'=>'profile Updated']);
-    }
     
-        public function apiUpdateProfileImage(Request $request)
-        {
-        $vendor = User::where('id',auth()->user()->id)->first();
-        $image = $request->all();
-        if (isset($request['profileimage']))
-        {
-            $img = $request['profileimage'];
-            $img = str_replace('data:image/png;base64,', '', $img);
-            $img = str_replace(' ', '+', $img);
-            $data = base64_decode($img);
-            $Iname = uniqid();
-            $file = public_path('/images/') . $Iname . ".png";
-            $success = file_put_contents($file, $data);
-            $image['profileimage'] = $Iname . ".png";
-        }
-        
-        $vendor->update($image);
-        return response(['success' => true , 'data' => 'profilePhoto update successfully..']);
 
-        }
+
+    
+    
+        
         
     public function getcountries()
     {
@@ -398,76 +479,15 @@ class ApiController extends Controller
         return response(['success' => true, 'data' => $users]);
     }
     
-        public function apisaveplaces(Request $request)
-    {
-        
-        $user = User::where('id',auth()->user()->id)->first();
-
-        if($request->selectedplaces)
-        {
-            foreach ($request->selectedplaces as $r) {
-                $place = new selectedplaces();
-                $place->user_id = $user->id;
-                $place->places = $r;
-                $place->save();
-            }
-        }
-        return response()->json(['status' => true, 'data'=>'Place Added']);
-    }
     
-        public function apiremoveplace($id)
-    {
-        selectedplaces::where('id' , $id)->delete();
-        return response()->json(['status' => true, 'data'=>'Places Deleted Successfully']);
-
-    }
+    
+    
 
     
-        public function apiloveplaces()
-    {
-        $user = User::where('id',auth()->user()->id)->first();
-        $placesselected = selectedplaces::select(
-            "selectedplaces.id",
-            "selectedplaces.user_id",
-            "selectedplaces.places",
-            "selectedplaces.created_at",
-            "places.name",
-            "places.image")
-            ->leftJoin('places', 'selectedplaces.places', '=', 'places.id')
-            ->where('selectedplaces.user_id' , $user->id)
-            ->get();
-        return response(['success' => true, 'data' => $placesselected]);
-    }
     
-     public function apifindpeople()
-    {
-        $user = User::where('id',auth()->user()->id)->first();
-        $data = user::where('user_type' , 'customer')->whereNotIn('id',[$user->id])->where('active' , 1)->where('is_admin' , 0)->get();
-        return response(['success' => true, 'data' => $data]);
-    }
-        public function apipeopleprofile(Request $request)
-    {
-        $data = user::where('username' ,$request->username)->first();
-        $fields = DB::table('signupfields')->where('published_status','published')->where('delete_Status','active')->orderby('order' , 'asc')->get();
-        $temp = array();
-        foreach($fields as $r)
-        {
-       $Userfields =  DB::Table('userfields')->where('signup_parent',$r->id)->where('user_id',$data->id)->get();
-          
-          foreach($Userfields as $f)
-        {
-           $temp['name'] = $data->name;
-           $temp['Joined'] = Cmf::date_format($data->created_at);
-           $temp['E-mail'] = $data->email;
-           $temp['Phone'] = $data->phonenumber;
-           $temp['Height'] = $data->height;
-           $temp['Age'] = $data->age;
-           $temp[$r->name] = $f->value;
-
-        }
-        }
-        return response(['success' => true , 'data' => $temp]);
-    }
+    
+    
+    
     
         public function apisendlove(Request $request)
     {
